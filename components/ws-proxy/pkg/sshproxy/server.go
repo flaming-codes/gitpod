@@ -16,7 +16,7 @@ import (
 	"github.com/gitpod-io/gitpod/common-go/log"
 	supervisor "github.com/gitpod-io/gitpod/supervisor/api"
 	tracker "github.com/gitpod-io/gitpod/ws-proxy/pkg/analytics"
-	p "github.com/gitpod-io/gitpod/ws-proxy/pkg/proxy"
+	"github.com/gitpod-io/gitpod/ws-proxy/pkg/proxy"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/xerrors"
 	"google.golang.org/grpc"
@@ -42,12 +42,12 @@ type Server struct {
 	Heartbeater Heartbeat
 
 	sshConfig             *ssh.ServerConfig
-	workspaceInfoProvider p.WorkspaceInfoProvider
+	workspaceInfoProvider proxy.WorkspaceInfoProvider
 }
 
 // New creates a new SSH proxy server
 
-func New(signers []ssh.Signer, workspaceInfoProvider p.WorkspaceInfoProvider, heartbeat Heartbeat) *Server {
+func New(signers []ssh.Signer, workspaceInfoProvider proxy.WorkspaceInfoProvider, heartbeat Heartbeat) *Server {
 	server := &Server{
 		workspaceInfoProvider: workspaceInfoProvider,
 		Heartbeater:           &noHeartbeat{},
@@ -191,7 +191,7 @@ func (s *Server) HandleConn(c net.Conn) {
 	}
 }
 
-func (s *Server) Authenticator(workspaceId, ownerToken string) (*p.WorkspaceInfo, error) {
+func (s *Server) Authenticator(workspaceId, ownerToken string) (*proxy.WorkspaceInfo, error) {
 	wsInfo := s.workspaceInfoProvider.WorkspaceInfo(workspaceId)
 	if wsInfo == nil {
 		return nil, ErrWorkspaceNotFound
@@ -202,7 +202,7 @@ func (s *Server) Authenticator(workspaceId, ownerToken string) (*p.WorkspaceInfo
 	return wsInfo, nil
 }
 
-func (s *Server) TrackSSHConnection(wsInfo *p.WorkspaceInfo, phase string, err error) {
+func (s *Server) TrackSSHConnection(wsInfo *proxy.WorkspaceInfo, phase string, err error) {
 	// if we didn't find an associated user, we don't want to track
 	if wsInfo == nil {
 		return
