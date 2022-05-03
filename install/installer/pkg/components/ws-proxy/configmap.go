@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/gitpod-io/gitpod/installer/pkg/components/workspace"
+	"github.com/gitpod-io/gitpod/installer/pkg/config/v1/experimental"
 
 	"github.com/gitpod-io/gitpod/common-go/util"
 	"github.com/gitpod-io/gitpod/installer/pkg/common"
@@ -21,6 +22,15 @@ import (
 )
 
 func configmap(ctx *common.RenderContext) ([]runtime.Object, error) {
+	wsmanagerAddr := "ws-manager:8080"
+	_ = ctx.WithExperimental(func(cfg *experimental.Config) error {
+		if cfg.Workspace == nil || !cfg.Workspace.UseWsmanagerMk2 {
+			return nil
+		}
+		wsmanagerAddr = "ws-manager-mk2:8080"
+		return nil
+	})
+
 	// todo(sje): wsManagerProxy seems to be unused
 	wspcfg := config.Config{
 		Namespace: ctx.Namespace,
@@ -66,7 +76,7 @@ func configmap(ctx *common.RenderContext) ([]runtime.Object, error) {
 		PrometheusAddr:     "127.0.0.1:9500",
 		ReadinessProbeAddr: fmt.Sprintf(":%v", ReadinessPort),
 		WorkspaceManager: &config.WorkspaceManagerConn{
-			Addr: "ws-manager:8080",
+			Addr: wsmanagerAddr,
 			TLS: struct {
 				CA   string "json:\"ca\""
 				Cert string "json:\"crt\""
