@@ -95,6 +95,7 @@ func ServeWorkspace(uidmapper *Uidmapper, fsshift api.FSShiftMethod, cgroupMount
 			FSShift:          fsshift,
 			CGroupMountPoint: cgroupMountPoint,
 		}
+
 		err = helper.Start()
 		if err != nil {
 			return xerrors.Errorf("cannot start in-workspace-helper server: %w", err)
@@ -149,7 +150,7 @@ func (wbs *InWorkspaceServiceServer) Start() error {
 		return xerrors.Errorf("cannot create ServiceLocDaemon: %w", err)
 	}
 
-	socketFN := filepath.Join(wbs.Session.ServiceLocDaemon, "daemon.sock")
+	socketFN := filepath.Join(wbs.Session.ServiceLocDaemon, "invalied-name-daemon.sock")
 	if _, err := os.Stat(socketFN); err == nil {
 		// a former ws-daemon instance left their sockets laying around.
 		// Let's clean up after them.
