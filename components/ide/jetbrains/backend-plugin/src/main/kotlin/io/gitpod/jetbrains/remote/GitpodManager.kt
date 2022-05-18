@@ -4,6 +4,7 @@
 
 package io.gitpod.jetbrains.remote
 
+import com.intellij.ide.BrowserUtil
 import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
@@ -23,6 +24,10 @@ import io.gitpod.jetbrains.remote.utils.Retrier.retry
 import io.gitpod.supervisor.api.*
 import io.gitpod.supervisor.api.Info.WorkspaceInfoResponse
 import io.gitpod.supervisor.api.Notification.*
+import io.gitpod.supervisor.api.Status.OnPortExposedAction
+import io.gitpod.supervisor.api.Status.PortsStatus
+import io.gitpod.supervisor.api.Status.PortsStatusRequest
+import io.gitpod.supervisor.api.Status.PortsStatusResponse
 import io.grpc.ManagedChannel
 import io.grpc.ManagedChannelBuilder
 import io.grpc.stub.ClientCallStreamObserver
@@ -45,6 +50,7 @@ import java.time.Duration
 import java.util.concurrent.CancellationException
 import java.util.concurrent.CompletableFuture
 import javax.websocket.DeploymentException
+
 
 @Service
 class GitpodManager : Disposable {
@@ -196,6 +202,105 @@ class GitpodManager : Disposable {
     init {
         lifetime.onTerminationOrNow {
             notificationsJob.cancel()
+        }
+    }
+
+    private val portsObserveJob = GlobalScope.launch {
+        if (application.isHeadlessEnvironment) {
+            return@launch
+        }
+
+        // Ignore ports that aren't actually used by the user (e.g. ports used internally by JetBrains IDEs)
+        val ignorePorts = listOf(5990, 5991, 6679, 6942, 6943)
+        val portsStatus = hashMapOf<Int, PortsStatus>()
+
+        val status = StatusServiceGrpc.newStub(supervisorChannel)
+        while (isActive) {
+            try {
+                val f = CompletableFuture<Void>()
+                status.portsStatus(
+                    PortsStatusRequest.newBuilder().setObserve(true).build(),
+                    object : ClientResponseObserver<PortsStatusRequest, PortsStatusResponse> {
+
+                        override fun beforeStart(requestStream: ClientCallStreamObserver<PortsStatusRequest>) {
+                            lifetime.onTerminationOrNow {
+                                requestStream.cancel(null, null)
+                            }
+                        }
+
+                        override fun onNext(ps: PortsStatusResponse) {
+                            for (port in ps.portsList) {
+                                // Avoiding undesired notifications
+                                if (ignorePorts.contains(port.localPort)) {
+                                    continue
+                                }
+
+                                val hasPreviousStatus = portsStatus.containsKey(port.localPort)
+
+                                if (!hasPreviousStatus) {
+                                    portsStatus[port.localPort] = port
+                                }
+
+                                val wasServed = portsStatus[port.localPort]?.served!!
+                                val wasExposed = portsStatus[port.localPort]?.hasExposed()!!
+                                val wasServedExposed = wasServed && wasExposed
+                                val isServedExposed = port.served && port.hasExposed()
+
+                                // If the initial update received shows that the port is served and exposed, then notify
+                                val isFirstUpdate = !hasPreviousStatus && wasServedExposed && isServedExposed
+
+                                // If the port changes its status to served and exposed, notify the user
+                                val shouldSendNotification = isFirstUpdate || !wasServedExposed && isServedExposed
+
+                                portsStatus[port.localPort] = port
+
+                                if (shouldSendNotification) {
+                                    if (port.exposed.onExposed.number == OnPortExposedAction.ignore_VALUE) {
+                                        continue
+                                    }
+
+                                    if (port.exposed.onExposed.number == OnPortExposedAction.open_browser_VALUE) {
+                                        BrowserUtil.browse(port.exposed.url)
+                                        continue
+                                    }
+
+                                    if (port.exposed.onExposed.number == OnPortExposedAction.open_preview_VALUE) {
+                                        BrowserUtil.browse(port.exposed.url)
+                                        continue
+                                    }
+
+                                    val message = "A service is available on port ${port.localPort}"
+                                    val notification = notificationGroup.createNotification(message, NotificationType.INFORMATION)
+                                    // TODO(andreafalzetti): add analytics event similar to https://github.com/gitpod-io/openvscode-server/blob/7c912399c70799e4e4452a63cf3c0f7cc8f5832c/extensions/gitpod-web/src/extension.ts#L582
+                                    val lambda = { BrowserUtil.browse(port.exposed.url) }
+                                    val action = NotificationAction.createSimpleExpiring("Open Browser", lambda)
+                                    notification.addAction(action)
+                                    notification.notify(null)
+                                }
+                            }
+                        }
+
+                        override fun onError(t: Throwable) {
+                            f.completeExceptionally(t)
+                        }
+
+                        override fun onCompleted() {
+                            f.complete(null)
+                        }
+                    })
+                f.await()
+            } catch (t: Throwable) {
+                if (t is CancellationException) {
+                    throw t
+                }
+                thisLogger().error("gitpod: failed to stream ports status: ", t)
+            }
+            delay(1000L)
+        }
+    }
+    init {
+        lifetime.onTerminationOrNow {
+            portsObserveJob.cancel()
         }
     }
 
