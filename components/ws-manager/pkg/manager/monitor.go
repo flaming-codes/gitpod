@@ -383,6 +383,12 @@ func actOnPodEvent(ctx context.Context, m actingManager, status *api.WorkspaceSt
 			if isFailed, ok := wso.Pod.Annotations[workspaceFailedBeforeStoppingAnnotation]; ok && isFailed == "true" {
 				if neverReady, ok := wso.Pod.Annotations[workspaceNeverReadyAnnotation]; ok && neverReady == "true" {
 					// The workspace is never ready, so there is no need for a finalizer.
+					j, err := json.Marshal(wso)
+					if err != nil {
+						log.Errorf("failed to json marshal to %v", wso)
+					} else {
+						log.Warnf("%s", string(j))
+					}
 					if _, ok := pod.Annotations[workspaceExplicitFailAnnotation]; !ok {
 						failMessage := status.Conditions.Failed
 						if failMessage == "" {
