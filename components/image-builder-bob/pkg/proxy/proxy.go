@@ -52,7 +52,7 @@ type Repo struct {
 	Auth func() docker.Authorizer
 }
 
-func rewriteURL(u *url.URL, fromRepo, toRepo, host, tag string) {
+func (proxy *Proxy) rewriteURL(u *url.URL, fromRepo, toRepo, host, tag string) {
 	var (
 		from = "/v2/" + strings.Trim(fromRepo, "/") + "/"
 		to   = "/v2/" + strings.Trim(toRepo, "/") + "/"
@@ -76,6 +76,13 @@ func rewriteURL(u *url.URL, fromRepo, toRepo, host, tag string) {
 		}
 	}
 
+	if u.RawQuery != "" {
+		// As per OCI distribution spec this (from=) should be the only possible reference to a cross repo
+		// https://github.com/opencontainers/distribution-spec/blob/main/spec.md#push
+		for k, v := range proxy.Aliases {
+			u.RawQuery = strings.Replace(u.RawQuery, "from="+k, "from="+v.Repo, 1)
+		}
+	}
 	u.Host = host
 }
 
@@ -99,7 +106,7 @@ func (proxy *Proxy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rewriteURL(r.URL, alias, repo.Repo, repo.Host, repo.Tag)
+	proxy.rewriteURL(r.URL, alias, repo.Repo, repo.Host, repo.Tag)
 	r.Host = r.URL.Host
 
 	auth := repo.Auth()
@@ -192,7 +199,7 @@ func (proxy *Proxy) reverse(alias string) *httputil.ReverseProxy {
 				return err
 			}
 
-			rewriteURL(lurl, repo.Repo, alias, proxy.Host.Host, "")
+			proxy.rewriteURL(lurl, repo.Repo, alias, proxy.Host.Host, "")
 			lurl.Host = proxy.Host.Host
 			// force scheme to http assuming this proxy never runs as https
 			lurl.Scheme = proxy.Host.Scheme
