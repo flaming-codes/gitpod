@@ -43,6 +43,7 @@ CLUSTER_ISSUER_CLOUD_DNS := "./manifests/gcp-issuer.yaml"
 .PHONY:
 ## managed-dns-with-cert-manager: Installs cert-manager, external-dns, and setup up CloudDNS
 managed-dns-with-cert-manager: check-env-sub-domain
+	terraform workspace select $(TF_VAR_sub_domain) && \
 	terraform apply -target=module.tools -var kubeconfig=${KUBECONFIG} --auto-approve && \
 	kubectl --kubeconfig=${KUBECONFIG} apply -f ${CLUSTER_ISSUER_CLOUD_DNS}
 
@@ -83,6 +84,7 @@ check-gitpod-installation:
 	@kubectl kots get --kubeconfig=${KUBECONFIG} app gitpod -n gitpod | grep gitpod  | awk '{print $$2}'
 
 cleanup:
+	terraform workspace select $(TF_VAR_sub_domain) && \
 	terraform destroy -target=module.tools -var kubeconfig=${KUBECONFIG} --auto-approve && \
 	terraform destroy -target=module.gke -var kubeconfig=${KUBECONFIG} --auto-approve && \
 	terraform destroy -target=module.k3s -var kubeconfig=${KUBECONFIG} --auto-approve
