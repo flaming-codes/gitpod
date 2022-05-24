@@ -17,6 +17,7 @@ function FeedbackFormModal(props: { onClose: () => void }) {
     };
 
     return (
+        // TODO: Use title and buttons props
         <Modal visible={true} onClose={onClose}>
             <FeedbackComponent onClose={onClose} onSubmit={onSubmit} isModal={true} />
         </Modal>
