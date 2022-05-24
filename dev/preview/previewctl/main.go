@@ -7,7 +7,7 @@ package main
 import (
 	"log"
 
-	"github.com/gitpod-io/gitpod/dev/preview/previewctl/cmd"
+	"github.com/gitpod-io/gitpod/previewctl/cmd"
 )
 
 func main() {
