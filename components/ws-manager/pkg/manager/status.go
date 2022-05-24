@@ -344,8 +344,16 @@ func (m *Manager) extractStatusFromPod(result *api.WorkspaceStatus, wso workspac
 			result.Conditions.Failed = ""
 		} else {
 			if _, ok := pod.Annotations[workspaceNeverReadyAnnotation]; ok {
-				// The workspace is never ready, so there is no need for a stopping phase.
-				result.Phase = api.WorkspacePhase_STOPPED
+				if _, ok := pod.Annotations[workspaceNeverReadyAnnotation]; ok {
+					j, err := json.Marshal(wso)
+					if err != nil {
+						log.Errorf("failed to json marshal to %v", wso)
+					} else {
+						fmt.Printf("wsoooo: %s\n", string(j))
+					}
+					// The workspace is never ready, so there is no need for a stopping phase.
+					result.Phase = api.WorkspacePhase_STOPPED
+				}
 			}
 		}
 
