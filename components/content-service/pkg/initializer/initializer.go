@@ -69,7 +69,7 @@ func (e CompositeInitializer) Run(ctx context.Context, mappings []archive.IDMapp
 			return csapi.WorkspaceInitFromOther, err
 		}
 	}
-	tracing.FinishSpan(span)
+	tracing.FinishSpan(span, nil)
 	return csapi.WorkspaceInitFromOther, nil
 }
 
