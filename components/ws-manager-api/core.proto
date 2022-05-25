@@ -40,6 +40,8 @@ service WorkspaceManager {
 
     // controlAdmission makes a workspace accessible for everyone or for the owner only
     rpc ControlAdmission(ControlAdmissionRequest) returns (ControlAdmissionResponse) {}
+
+    rpc DeleteVolumeSnapshot(DeleteVolumeSnapshotRequest) returns (DeleteVolumeSnapshotResponse) {}
 }
 
 // MetadataFilter describes conditions for matching a set of workspaces.
@@ -211,6 +213,12 @@ message ControlAdmissionRequest {
 }
 
 message ControlAdmissionResponse {}
+
+message DeleteVolumeSnapshotRequest{
+    string id = 1;
+}
+
+message DeleteVolumeSnapshotResponse {}
 
 enum AdmissionLevel {
     // WORKSPACE_ADMIT_OWNER_ONLY means the workspace can only be accessed using the owner token

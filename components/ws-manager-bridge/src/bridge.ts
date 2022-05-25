@@ -22,6 +22,7 @@ import {
     WorkspaceConditionBool,
     PortVisibility as WsManPortVisibility,
     PromisifiedWorkspaceManagerClient,
+    DeleteVolumeSnapshotRequest,
 } from "@gitpod/ws-manager/lib";
 import { WorkspaceDB } from "@gitpod/gitpod-db/lib/workspace-db";
 import { UserDB } from "@gitpod/gitpod-db/lib/user-db";
@@ -78,14 +79,17 @@ export class WorkspaceManagerBridge implements Disposable {
 
     protected cluster: WorkspaceClusterInfo;
 
-    public start(cluster: WorkspaceClusterInfo, clientProvider: ClientProvider) {
+    protected clientProvider: ClientProvider;
+
+    public start(cluster: WorkspaceClusterInfo, client: ClientProvider) {
         const logPayload = { name: cluster.name, url: cluster.url, govern: cluster.govern };
         log.info(`Starting bridge to cluster...`, logPayload);
         this.cluster = cluster;
+        this.clientProvider = client;
 
         const startStatusUpdateHandler = (writeToDB: boolean) => {
             log.debug(`Starting status update handler: ${cluster.name}`, logPayload);
-            /* no await */ this.startStatusUpdateHandler(clientProvider, writeToDB, logPayload)
+            /* no await */ this.startStatusUpdateHandler(this.clientProvider, writeToDB, logPayload)
                 // this is a mere safe-guard: we do not expect the code inside to fail
                 .catch((err) => log.error("Cannot start status update handler", err));
         };
@@ -100,7 +104,7 @@ export class WorkspaceManagerBridge implements Disposable {
                 throw new Error("controllerInterval <= 0!");
             }
             log.debug(`Starting controller: ${cluster.name}`, logPayload);
-            this.startController(clientProvider, controllerInterval, this.config.controllerMaxDisconnectSeconds);
+            this.startController(this.clientProvider, controllerInterval, this.config.controllerMaxDisconnectSeconds);
         } else {
             // _DO NOT_ update the DB (another bridge is responsible for that)
             // Still, listen to all updates, generate/derive new state and distribute it locally!
@@ -377,6 +381,12 @@ export class WorkspaceManagerBridge implements Disposable {
                         volumeHandle: status.conditions.volumeSnapshot.volumeSnapshotHandle,
                     });
                 }
+
+                let client = await this.clientProvider();
+                //let wsInstanceIDs = this.workspaceDB.trace(ctx).findInstances(workspaceId);
+                const req = new DeleteVolumeSnapshotRequest();
+                req.setId("12345");
+                client.deleteVolumeSnapshot(ctx, req);
             }
 
             if (writeToDB) {

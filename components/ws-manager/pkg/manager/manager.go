@@ -346,6 +346,18 @@ func (m *Manager) StartWorkspace(ctx context.Context, req *api.StartWorkspaceReq
 	return okResponse, nil
 }
 
+func (m *Manager) DeleteVolumeSnapshot(ctx context.Context, req *api.DeleteVolumeSnapshotRequest) (res *api.DeleteVolumeSnapshotResponse, err error) {
+	//span, ctx := tracing.FromContext(ctx, "DeleteVolumeSnapshot")
+	//tracing.LogRequestSafe(span, req)
+	//defer tracing.FinishSpan(span, &err)
+
+	log.Infof("DeleteVolumeSnapshot: %s", req.Id)
+
+	okResponse := &api.DeleteVolumeSnapshotResponse{}
+
+	return okResponse, nil
+}
+
 func podRunning(clientset client.Client, podName, namespace string) wait.ConditionWithContextFunc {
 	return func(ctx context.Context) (bool, error) {
 		var pod corev1.Pod
