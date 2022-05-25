@@ -5,7 +5,10 @@
 package cmd
 
 import (
+	"log"
+	"net/url"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 )
@@ -19,6 +22,18 @@ func Execute() {
 	if err != nil {
 		os.Exit(1)
 	}
+}
+
+func getCliApiUrl() *url.URL {
+	var backendPort = 63342
+	if os.Getenv("JB_DEV") == "true" {
+		backendPort = backendPort + 1
+	}
+	parsedUrl, urlParseError := url.Parse("http://localhost:" + strconv.Itoa(backendPort) + "/api/gitpod/cli")
+	if urlParseError != nil {
+		log.Fatal(urlParseError)
+	}
+	return parsedUrl
 }
 
 func init() {}
