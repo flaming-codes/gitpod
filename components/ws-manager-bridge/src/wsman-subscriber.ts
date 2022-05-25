@@ -59,6 +59,9 @@ export class WsmanSubscriber implements Disposable {
                             console.log("MADS: Headers are", header);
 
                             const spanCtx = opentracing.globalTracer().extract(opentracing.FORMAT_HTTP_HEADERS, header);
+
+                            console.log("MADS: spanCtx is", spanCtx);
+
                             const span = !!spanCtx
                                 ? opentracing.globalTracer().startSpan("incomingSubscriptionResponse", {
                                       references: [opentracing.childOf(spanCtx!)],
@@ -70,7 +73,14 @@ export class WsmanSubscriber implements Disposable {
                             try {
                                 callbacks.onStatusUpdate({ span }, status);
                             } catch (err) {
+                                if (span) {
+                                    TraceContext.setError({ span }, err);
+                                }
                                 log.error("Error handling onStatusUpdate", err, payload);
+                            } finally {
+                                if (span) {
+                                    span.finish();
+                                }
                             }
                         }
                     });
