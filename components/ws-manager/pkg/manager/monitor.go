@@ -520,13 +520,26 @@ func (m *Monitor) traceWorkspace(occasion string, wso *workspaceObjects) opentra
 	if traceID == "" && wso.Pod != nil {
 		traceID = wso.Pod.Annotations[wsk8s.TraceIDAnnotation]
 	}
+
 	spanCtx := tracing.FromTraceID(traceID)
+
 	if spanCtx == nil {
 		// no trace information available
 		return opentracing.NoopTracer{}.StartSpan("noop")
 	}
 
+	// TODO: In OpenTelemetry they have the context of Links which is what these FollowsFrom spans
+	// get translated too. They recommend that spans that have links to also point to the link as the parent
+	// but I think that's not possible in opentracing.
+	//
+	// See OpenTelemtry Links docs here https://github.com/open-telemetry/opentelemetry-specification/blob/main/specification/overview.md#links-between-spans
 	span := opentracing.StartSpan(fmt.Sprintf("/workspace/%s", occasion), opentracing.FollowsFrom(spanCtx))
+
+	// TODO: Would be nice if we could create a root span above and then add the "Links" after
+	// but I believe both OpenTelemtry and OpenTracing wants "Links" to be added as part of the span.
+	// so perhaps we have to wait until we can use OpenTelemetry instead to get a root span here that just links
+	// the to a span in another trace instead of creating "one big trace" for all of this.
+
 	if wso.Pod != nil {
 		tracing.ApplyOWI(span, wsk8s.GetOWIFromObject(&wso.Pod.ObjectMeta))
 	}
