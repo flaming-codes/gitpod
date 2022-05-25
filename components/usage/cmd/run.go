@@ -7,6 +7,7 @@ package cmd
 import (
 	"github.com/gitpod-io/gitpod/common-go/baseserver"
 	"github.com/gitpod-io/gitpod/common-go/log"
+	"github.com/gitpod-io/gitpod/usage/pkg/controller"
 	"github.com/spf13/cobra"
 )
 
@@ -27,6 +28,12 @@ func run() *cobra.Command {
 			log.Init(ServiceName, Version, true, verbose)
 
 			log.Info("Hello world usage server")
+
+			ctrl := controller.New(controller.Config{})
+			err := ctrl.Start()
+			if err != nil {
+				log.WithError(err).Fatal("Failed to start controller.")
+			}
 
 			srv, err := baseserver.New("usage")
 			if err != nil {
