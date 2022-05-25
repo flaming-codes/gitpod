@@ -246,10 +246,8 @@ func (s *Server) HandleConn(c net.Conn) {
 
 	for newChannel := range chans {
 		switch newChannel.ChannelType() {
-		case "session", "direct-tcpip":
+		case "session", "direct-tcpip", "tcpip-forward":
 			go s.ChannelForward(ctx, session, client, newChannel)
-		case "tcpip-forward":
-			newChannel.Reject(ssh.UnknownChannelType, "Gitpod SSH Gateway cannot remote forward ports")
 		default:
 			newChannel.Reject(ssh.UnknownChannelType, fmt.Sprintf("Gitpod SSH Gateway cannot handle %s channel types", newChannel.ChannelType()))
 		}
