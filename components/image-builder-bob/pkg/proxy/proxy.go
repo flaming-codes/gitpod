@@ -171,7 +171,10 @@ func (proxy *Proxy) reverse(alias string) *httputil.ReverseProxy {
 		//
 		// 			   @link https://golang.org/src/net/http/httputil/reverseproxy.go
 		r.Header.Set("X-Forwarded-For", "127.0.0.1")
-
+		if strings.Contains(r.URL.Path, "artifacts-uploads") {
+			str := strings.SplitN(r.URL.Path, "/artifacts-uploads", 2)
+			r.URL.Path = "/artifacts-uploads" + str[1]
+		}
 		auth, ok := r.Context().Value(authKey).(docker.Authorizer)
 		if !ok || auth == nil {
 			return
@@ -187,6 +190,9 @@ func (proxy *Proxy) reverse(alias string) *httputil.ReverseProxy {
 		// Some registries return a Location header which we must rewrite to still push
 		// through this proxy.
 		if loc := r.Header.Get("Location"); loc != "" {
+			// We don't want / prefix for relative URL
+			// As we already add a suffix of / when rewriting the url
+			loc = strings.TrimPrefix(loc, "/")
 			lurl, err := url.Parse(loc)
 			if err != nil {
 				return err
