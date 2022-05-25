@@ -881,6 +881,9 @@ func (m *Manager) newStartWorkspaceContext(ctx context.Context, req *api.StartWo
 
 	workspaceSpan := opentracing.StartSpan("workspace", opentracing.FollowsFrom(opentracing.SpanFromContext(ctx).Context()))
 	traceID := tracing.GetTraceID(workspaceSpan)
+	// TODO: We have to end the span, otherwise it will never get sent and we end up with missing spans.
+	// but is there a better place to end it.
+	defer tracing.FinishSpan(workspaceSpan, &err)
 
 	clsName := req.Spec.Class
 	if _, ok := m.Config.WorkspaceClasses[req.Spec.Class]; clsName == "" || !ok {
