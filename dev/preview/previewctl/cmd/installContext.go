@@ -23,6 +23,7 @@ func installContextCmd() *cobra.Command {
 		Short: "Installs the kubectl context of a preview environment.",
 		Run: func(cmd *cobra.Command, args []string) {
 			p := preview.New(branch)
+
 			err := p.InstallContext(shouldWait)
 			if err != nil {
 				log.Fatalf("Couldn't install context for the '%s' preview", p.Branch)

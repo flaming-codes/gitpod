@@ -19,7 +19,7 @@ while getopts n:p:u:b: flag
 do
     case "${flag}" in
         u) USER="${OPTARG}";;
-        b) BRANCH="${OPTARG}";;
+        b) BRANCH="${2}";;
         *) ;;
     esac
 done
@@ -27,8 +27,10 @@ done
 if [[ "${BRANCH}" == "" ]]; then
     VM_NAME="$(preview-name-from-branch)"
 else
-    VM_NAME="$(preview-name-from-branch -b "$BRANCH")"
+    VM_NAME="$(preview-name-from-branch "$BRANCH")"
 fi
+
+echo "Installing context from VM: $VM_NAME"
 
 K3S_CONTEXT="${VM_NAME}"
 K3S_ENDPOINT="${VM_NAME}.kube.gitpod-dev.com"

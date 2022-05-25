@@ -8,11 +8,11 @@ package preview
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"fmt"
 	"log"
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type Preview struct {
@@ -41,10 +41,25 @@ func New(branch string) *Preview {
 }
 
 func (p *Preview) InstallContext(shouldWait bool) error {
-	// previewName := p.GetPreviewName()
+	if shouldWait {
+		installTicker := time.NewTicker(30 * time.Second)
 
-	fmt.Println("Install Context isn't implemented")
-	return nil
+		for {
+			select {
+			case <-installTicker.C:
+				if err := installContext(p.Branch); err == nil {
+					// No error means successful context installation
+					return nil
+				}
+			}
+		}
+	}
+
+	return installContext(p.Branch)
+}
+
+func installContext(branch string) error {
+	return exec.Command("bash", "/workspace/gitpod/dev/preview/install-k3s-kubeconfig.sh", "-b", branch).Run()
 }
 
 func (p *Preview) GetPreviewName() string {

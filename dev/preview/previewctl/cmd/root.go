@@ -19,7 +19,7 @@ func RootCmd() *cobra.Command {
 		Long:  `previewctl is your best friend when interacting with Preview Environments :)`,
 	}
 
-	cmd.Flags().StringVar(&branch, "branch", "", "From which branch previewctl should install the context. By default it will use the result of \"git rev-parse --abbrev-ref HEAD\"")
+	cmd.PersistentFlags().StringVar(&branch, "branch", "", "From which branch's preview previewctl should interact with. By default it will use the result of \"git rev-parse --abbrev-ref HEAD\"")
 
 	cmd.AddCommand(
 		installContextCmd(),

@@ -8,16 +8,8 @@
 #        See the file for implementation notes.
 #
 function preview-name-from-branch {
-    BRANCH=""
-    while getopts b: flag
-    do
-        case "${flag}" in
-            b) BRANCH="${OPTARG}";;
-            *) ;;
-        esac
-    done
-
-    echo "Branch: $BRANCH"
+    set +u
+    local BRANCH="$1"
 
     if [ "$BRANCH" == "" ]; then
         branch_name=$(git symbolic-ref HEAD 2>&1) || error "Cannot get current branch"
