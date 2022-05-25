@@ -12,21 +12,16 @@ import (
 	"time"
 )
 
-func New(schedule string, reconciler Reconciler) (*Controller, error) {
-	sched, err := cron.Parse(schedule)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse cron schedule: %w", err)
-	}
-
+func New(schedule time.Duration, reconciler Reconciler) (*Controller, error) {
 	return &Controller{
-		schedule:   sched,
+		schedule:   schedule,
 		reconciler: reconciler,
 		scheduler:  cron.NewWithLocation(time.UTC),
 	}, nil
 }
 
 type Controller struct {
-	schedule   cron.Schedule
+	schedule   time.Duration
 	reconciler Reconciler
 
 	scheduler *cron.Cron
@@ -34,10 +29,10 @@ type Controller struct {
 	runningJobs sync.WaitGroup
 }
 
-func (c *Controller) Start() {
+func (c *Controller) Start() error {
 	log.Info("Starting usage controller.")
 
-	c.scheduler.Schedule(c.schedule, cron.FuncJob(func() {
+	err := c.scheduler.AddFunc(fmt.Sprintf("@every %s", c.schedule.String()), cron.FuncJob(func() {
 		log.Info("Starting usage reconciliation.")
 
 		c.runningJobs.Add(1)
@@ -50,8 +45,13 @@ func (c *Controller) Start() {
 			log.Info("Completed usage reconciliation run without errors.")
 		}
 	}))
+	if err != nil {
+		return fmt.Errorf("failed to add function to scheduler: %w", err)
+	}
 
 	c.scheduler.Start()
+
+	return nil
 }
 
 // Stop terminates the Controller and awaits for all running jobs to complete.

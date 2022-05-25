@@ -9,6 +9,7 @@ import (
 	"github.com/gitpod-io/gitpod/common-go/log"
 	"github.com/gitpod-io/gitpod/usage/pkg/controller"
 	"github.com/spf13/cobra"
+	"time"
 )
 
 func init() {
@@ -27,12 +28,15 @@ func run() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Init(ServiceName, Version, true, verbose)
 
-			ctrl, err := controller.New("@every 1m", controller.ReconcilerFunc(controller.HelloWorldReconciler))
+			ctrl, err := controller.New(1*time.Minute, controller.ReconcilerFunc(controller.HelloWorldReconciler))
 			if err != nil {
 				log.WithError(err).Fatal("Failed to initialize usage controller.")
 			}
 
-			ctrl.Start()
+			err = ctrl.Start()
+			if err != nil {
+				log.WithError(err).Fatal("Failed to start usage controller.")
+			}
 			defer ctrl.Stop()
 
 			srv, err := baseserver.New("usage")
