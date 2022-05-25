@@ -219,6 +219,7 @@ export class WorkspaceManagerBridge implements Disposable {
             return;
         }
 
+        console.log("MADS: statusUpdate: ", ctx);
         const span = TraceContext.startSpan("handleStatusUpdate", ctx);
         span.setTag("status", JSON.stringify(filterStatus(status)));
         span.setTag("writeToDB", writeToDB);

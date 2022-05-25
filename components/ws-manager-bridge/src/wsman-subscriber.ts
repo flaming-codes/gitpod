@@ -55,12 +55,17 @@ export class WsmanSubscriber implements Disposable {
                             if (!!incoming.getHeaderMap()) {
                                 incoming.getHeaderMap().forEach((v: string, k: string) => (header[k] = v));
                             }
+
+                            console.log("MADS: Headers are", header);
+
                             const spanCtx = opentracing.globalTracer().extract(opentracing.FORMAT_HTTP_HEADERS, header);
                             const span = !!spanCtx
                                 ? opentracing.globalTracer().startSpan("incomingSubscriptionResponse", {
                                       references: [opentracing.childOf(spanCtx!)],
                                   })
                                 : undefined;
+
+                            console.log("MADS: span is", span);
 
                             try {
                                 callbacks.onStatusUpdate({ span }, status);
