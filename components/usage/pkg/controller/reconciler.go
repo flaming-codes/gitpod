@@ -4,6 +4,8 @@
 
 package controller
 
+import "github.com/gitpod-io/gitpod/common-go/log"
+
 type Reconciler interface {
 	Reconcile() error
 }
@@ -12,4 +14,9 @@ type ReconcilerFunc func() error
 
 func (f ReconcilerFunc) Reconcile() error {
 	return f()
+}
+
+func HelloWorldReconciler() error {
+	log.Info("Hello world reconciler!")
+	return nil
 }

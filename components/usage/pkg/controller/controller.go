@@ -35,14 +35,19 @@ type Controller struct {
 }
 
 func (c *Controller) Start() {
-	log.
-		c.scheduler.Schedule(c.schedule, cron.FuncJob(func() {
+	log.Info("Starting usage controller.")
+
+	c.scheduler.Schedule(c.schedule, cron.FuncJob(func() {
+		log.Info("Starting usage reconciliation.")
+
 		c.runningJobs.Add(1)
 		defer c.runningJobs.Done()
 
 		err := c.reconciler.Reconcile()
 		if err != nil {
-			log.WithError(err).Errorf("Controller run failed.")
+			log.WithError(err).Errorf("Reconciliation run failed.")
+		} else {
+			log.Info("Completed usage reconciliation run without errors.")
 		}
 	}))
 
@@ -51,9 +56,11 @@ func (c *Controller) Start() {
 
 // Stop terminates the Controller and awaits for all running jobs to complete.
 func (c *Controller) Stop() {
+	log.Info("Stopping usage controller.")
 	// Stop any new jobs from running
 	c.scheduler.Stop()
 
+	log.Info("Awaiting existing reconciliation runs to complete..")
 	// Wait for existing jobs to finish
 	c.runningJobs.Wait()
 }

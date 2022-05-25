@@ -27,13 +27,13 @@ func run() *cobra.Command {
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Init(ServiceName, Version, true, verbose)
 
-			log.Info("Hello world usage server")
-
-			ctrl := controller.New(controller.Config{})
-			err := ctrl.Start()
+			ctrl, err := controller.New("@every 1m", controller.ReconcilerFunc(controller.HelloWorldReconciler))
 			if err != nil {
-				log.WithError(err).Fatal("Failed to start controller.")
+				log.WithError(err).Fatal("Failed to initialize usage controller.")
 			}
+
+			ctrl.Start()
+			defer ctrl.Stop()
 
 			srv, err := baseserver.New("usage")
 			if err != nil {
