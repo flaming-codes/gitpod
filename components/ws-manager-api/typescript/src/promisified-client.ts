@@ -18,10 +18,7 @@ export function withTracing(ctx: TraceContext) {
     if (ctx.span) {
         const carrier: { [key: string]: string } = {};
         opentracing.globalTracer().inject(ctx.span, opentracing.FORMAT_HTTP_HEADERS, carrier);
-        // TODO: I suspect that we might not be injecting al the relevant metadata.
-        console.log("MADS: withTracing: carrier", carrier)
         Object.keys(carrier).filter(p => carrier.hasOwnProperty(p)).forEach(p => metadata.set(p, carrier[p]));
-        console.log("MADS: withTracing: metadata", metadata)
     }
     return metadata;
 }
